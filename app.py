@@ -75,81 +75,6 @@ else:
         with col_chart:
             components.html(
                 """
-                <div class="tradingview-widget-container" style="height: 500px;">
-                  <div id="tradingview_xauusd" style="height: 100%;"></div>
-                  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                  <script type="text/javascript">
-                  new TradingView.widget({
-                  "autosize": true,
-                  "symbol": "OANDA:XAUUSD",
-                  "interval": "15",
-                  "timezone": "Asia/Bangkok",
-                  "theme": "dark",
-                  "style": "1",
-                  "locale": "th_TH",
-                  "enable_publishing": false,
-                  "allow_symbol_change": true,
-                  "container_id": "tradingview_xauusd"
-                });
-                  </script>
-                </div>
-                """, height=500
-            )
-
-        with col_news:
-            components.html(
-                """
-                <div class="tradingview-widget-container" style="height: 500px;">
-                  <div class="tradingview-widget-container__widget" style="height: 100%;"></div>
-                  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-                  {
-                  "colorTheme": "dark",
-                  "isTransparent": false,
-                  "width": "100%",
-                  "height": "100%",
-                  "locale": "th_TH",
-                  "importanceFilter": "0,1",
-                  "currencyFilter": "USD,EUR,GBP,JPY,AUD,CAD,CHF,CNY"
-                }
-                  </script>
-                </div>
-                """, height=500
-            )
-            
-        st.markdown("---")
-        
-        # --- โซนแสดง KPI แยกบอท ---
-        st.markdown("### 🎯 Bots Performance")
-        def render_kpi(bot_name, data):
-            if data.empty:
-                st.metric(f"Total Trades ({bot_name})", 0)
-                return
-
-            total_profit = data["profit_loss"].sum()
-            total_trades = len(data)
-            win_trades = len(data[data["profit_loss"] > 0])
-            win_rate = (win_trades / total_trades) * 100 if total_trades > 0 else 0
-
-            col1, col2, col3 = st.columns(3)
-            col1.metric(f"💰 Net Profit ({bot_name})", f"${total_profit:.2f}")
-            col2.metric(f"🎯 Win Rate", f"{win_rate:.2f}%")
-            col3.metric(f"📊 Total Closed Trades", f"{total_trades}")
-
-        st.subheader("⚡ Scrapler (M5) Performance")
-        render_kpi("Scrapler", df_closed[df_closed["bot_type"] == "Scrapler ⚡"])
-        
-        st.subheader("🏰 Swing (H1/H4) Performance")
-        render_kpi("Swing", df_closed[df_closed["bot_type"] == "Swing 🏰"])
-
-        st.markdown("---")
-
-        # --- โซนแสดงกราฟ TradingView และ ปฏิทินข่าว ---
-        st.markdown("### 🌐 Live Market & Economic Calendar")
-        col_chart, col_news = st.columns([6, 4]) 
-        
-        with col_chart:
-            components.html(
-                """
                 <div class="tradingview-widget-container">
                   <div id="tradingview_xauusd"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -192,6 +117,49 @@ else:
                 </div>
                 """, height=600  # 🌟 บังคับความสูงกล่อง Streamlit
             )
+            
+        st.markdown("---")
+        
+        # --- โซนแสดง KPI แยกบอท ---
+        st.markdown("### 🎯 Bots Performance")
+        def render_kpi(bot_name, data):
+            if data.empty:
+                st.metric(f"Total Trades ({bot_name})", 0)
+                return
+
+            total_profit = data["profit_loss"].sum()
+            total_trades = len(data)
+            win_trades = len(data[data["profit_loss"] > 0])
+            win_rate = (win_trades / total_trades) * 100 if total_trades > 0 else 0
+
+            # 🌟 [เพิ่มใหม่] คำนวณ Win Streak (ชนะติดกันสูงสุด)
+            # ต้องเรียงจากเก่าไปใหม่ก่อนเพื่อหาความต่อเนื่อง
+            data_sorted = data.sort_values("timestamp", ascending=True)
+            
+            current_streak = 0
+            max_streak = 0
+            for profit in data_sorted["profit_loss"]:
+                if profit > 0:
+                    current_streak += 1
+                    max_streak = max(max_streak, current_streak)
+                else:
+                    current_streak = 0
+                    
+            # 🌟 [เพิ่มใหม่] คำนวณ Max Drawdown (การขาดทุนสะสมสูงสุดจากจุดพีค)
+            cumulative = data_sorted["profit_loss"].cumsum()
+            peak = cumulative.cummax()
+            drawdown = peak - cumulative
+            max_dd = drawdown.max()
+
+            # แสดงผลแบ่งเป็น 5 คอลัมน์
+            col1, col2, col3, col4, col5 = st.columns(5)
+            col1.metric(f"💰 Net Profit ({bot_name})", f"${total_profit:.2f}")
+            col2.metric(f"🎯 Win Rate", f"{win_rate:.1f}%")
+            col3.metric(f"📉 Max Drawdown", f"${max_dd:.2f}")
+            col4.metric(f"🔥 Max Win Streak", f"{max_streak} ไม้")
+            col5.metric(f"📊 Total Closed", f"{total_trades}")
+
+        st.markdown("---")
 
     # ==========================================
     # 📜 หน้า 2: Trade History (ประวัติและเจาะลึก AI)
@@ -293,3 +261,4 @@ else:
                     
                     st.markdown("#### ⚡ เหตุผลในการตัดสินใจ (Reasoning)")
                     st.success(row.get("reason_text", "ไม่มีข้อมูล"))
+
