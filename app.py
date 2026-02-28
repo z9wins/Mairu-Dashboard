@@ -75,14 +75,12 @@ else:
         with col_chart:
             components.html(
                 """
-                <div class="tradingview-widget-container">
-                  <div id="tradingview_xauusd"></div>
+                <div class="tradingview-widget-container" style="height: 500px;">
+                  <div id="tradingview_xauusd" style="height: 100%;"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
                   <script type="text/javascript">
                   new TradingView.widget({
-                  "autosize": false,
-                  "width": "100%",
-                  "height": "600",
+                  "autosize": true,
                   "symbol": "OANDA:XAUUSD",
                   "interval": "15",
                   "timezone": "Asia/Bangkok",
@@ -95,27 +93,27 @@ else:
                 });
                   </script>
                 </div>
-                """, height=600  # 🌟 บังคับความสูงกล่อง Streamlit
+                """, height=500
             )
 
         with col_news:
             components.html(
                 """
-                <div class="tradingview-widget-container">
-                  <div class="tradingview-widget-container__widget"></div>
+                <div class="tradingview-widget-container" style="height: 500px;">
+                  <div class="tradingview-widget-container__widget" style="height: 100%;"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
                   {
                   "colorTheme": "dark",
                   "isTransparent": false,
                   "width": "100%",
-                  "height": "600", 
+                  "height": "100%",
                   "locale": "th_TH",
                   "importanceFilter": "0,1",
-                  "currencyFilter": "USD" 
+                  "currencyFilter": "USD,EUR,GBP,JPY,AUD,CAD,CHF,CNY"
                 }
                   </script>
                 </div>
-                """, height=600  # 🌟 บังคับความสูงกล่อง Streamlit
+                """, height=500
             )
             
         st.markdown("---")
@@ -145,7 +143,7 @@ else:
 
         st.markdown("---")
 
-       # --- โซนแสดงกราฟ TradingView และ ปฏิทินข่าว ---
+        # --- โซนแสดงกราฟ TradingView และ ปฏิทินข่าว ---
         st.markdown("### 🌐 Live Market & Economic Calendar")
         col_chart, col_news = st.columns([6, 4]) 
         
@@ -295,4 +293,3 @@ else:
                     
                     st.markdown("#### ⚡ เหตุผลในการตัดสินใจ (Reasoning)")
                     st.success(row.get("reason_text", "ไม่มีข้อมูล"))
-
