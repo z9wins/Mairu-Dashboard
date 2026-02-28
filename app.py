@@ -72,14 +72,13 @@ if menu == "📊 Market Overview":
     st.markdown("---")
     
     # 🌟 โซนแสดงกราฟ TradingView และปฏิทินข่าว
-    col_chart, col_news = st.columns([7, 3]) # แบ่งสัดส่วนจอ กราฟ 70% ข่าว 30%
+    col_chart, col_news = st.columns([6, 4]) # แบ่งสัดส่วนจอ กราฟ 70% ข่าว 30%
     
     with col_chart:
         st.subheader("🪙 XAU/USD Live Chart")
-        # ฝัง Widget TradingView กราฟทองคำ (ปรับเป็น Dark Mode อัตโนมัติ)
         components.html(
             """
-            <div class="tradingview-widget-container" style="height: 500px;">
+            <div class="tradingview-widget-container" style="height: 600px;">
               <div id="tradingview_xauusd" style="height: 100%;"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
               <script type="text/javascript">
@@ -97,15 +96,14 @@ if menu == "📊 Market Overview":
             });
               </script>
             </div>
-            """, height=500
+            """, height=600 # ยืดความสูงเป็น 600
         )
 
     with col_news:
         st.subheader("📅 Economic Calendar (TH Time)")
-        # ฝัง Widget ปฏิทินเศรษฐกิจ (ตั้งค่าเวลาไทย Asia/Bangkok)
         components.html(
             """
-            <div class="tradingview-widget-container" style="height: 500px;">
+            <div class="tradingview-widget-container" style="height: 600px;">
               <div class="tradingview-widget-container__widget" style="height: 100%;"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
               {
@@ -115,13 +113,12 @@ if menu == "📊 Market Overview":
               "height": "100%",
               "locale": "th_TH",
               "importanceFilter": "0,1",
-              "currencyFilter": "USD,EUR,GBP,JPY,AUD,CAD,CHF,CNY"
+              "currencyFilter": "USD"
             }
               </script>
             </div>
-            """, height=500
+            """, height=600 # ยืดความสูงเป็น 600
         )
-
 # ==========================================
 # 🔵 หน้า 2: Trade History (ตารางประวัติ + ฟิลเตอร์)
 # ==========================================
@@ -153,3 +150,4 @@ elif menu == "📋 Trade History & Filters":
             use_container_width=True,
             hide_index=True
         )
+
