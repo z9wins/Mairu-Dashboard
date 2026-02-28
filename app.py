@@ -75,12 +75,14 @@ else:
         with col_chart:
             components.html(
                 """
-                <div class="tradingview-widget-container" style="height: 500px;">
-                  <div id="tradingview_xauusd" style="height: 100%;"></div>
+                <div class="tradingview-widget-container">
+                  <div id="tradingview_xauusd"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
                   <script type="text/javascript">
                   new TradingView.widget({
-                  "autosize": true,
+                  "autosize": false,
+                  "width": "100%",
+                  "height": "600",
                   "symbol": "OANDA:XAUUSD",
                   "interval": "15",
                   "timezone": "Asia/Bangkok",
@@ -93,27 +95,27 @@ else:
                 });
                   </script>
                 </div>
-                """, height=500
+                """, height=600  # 🌟 บังคับความสูงกล่อง Streamlit
             )
 
         with col_news:
             components.html(
                 """
-                <div class="tradingview-widget-container" style="height: 500px;">
-                  <div class="tradingview-widget-container__widget" style="height: 100%;"></div>
+                <div class="tradingview-widget-container">
+                  <div class="tradingview-widget-container__widget"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
                   {
                   "colorTheme": "dark",
                   "isTransparent": false,
                   "width": "100%",
-                  "height": "100%",
+                  "height": "600", 
                   "locale": "th_TH",
                   "importanceFilter": "0,1",
-                  "currencyFilter": "USD,EUR,GBP,JPY,AUD,CAD,CHF,CNY"
+                  "currencyFilter": "USD" 
                 }
                   </script>
                 </div>
-                """, height=500
+                """, height=600  # 🌟 บังคับความสูงกล่อง Streamlit
             )
             
         st.markdown("---")
@@ -293,3 +295,4 @@ else:
                     
                     st.markdown("#### ⚡ เหตุผลในการตัดสินใจ (Reasoning)")
                     st.success(row.get("reason_text", "ไม่มีข้อมูล"))
+
