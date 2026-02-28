@@ -14,29 +14,25 @@ st.set_page_config(page_title="Mairu AI Dashboard", layout="wide", page_icon="�
 # ==========================================
 @st.cache_data(ttl=60)
 def load_data():
-    # โหลดไฟล์ Scrapler
     try:
         df_scrapler = pd.read_csv("db_scrapler.csv", on_bad_lines="skip")
         df_scrapler["bot_type"] = "Scrapler ⚡"
     except:
         df_scrapler = pd.DataFrame()
 
-    # โหลดไฟล์ Swing
     try:
         df_swing = pd.read_csv("db_swing.csv", on_bad_lines="skip")
         df_swing["bot_type"] = "Swing 🏰"
     except:
         df_swing = pd.DataFrame()
 
-    # ถ้ายกมาทั้งสองไฟล์ไม่เจอเลย ให้จบการทำงาน
     if df_scrapler.empty and df_swing.empty:
         return None
 
-    # จับสองตารางมาต่อกัน
     df_all = pd.concat([df_scrapler, df_swing], ignore_index=True)
     if not df_all.empty:
         df_all["timestamp"] = pd.to_datetime(df_all["timestamp"], errors="coerce")
-        df_all = df_all.sort_values("timestamp", ascending=False) # เรียงล่าสุดขึ้นก่อน
+        df_all = df_all.sort_values("timestamp", ascending=False)
         df_all["profit_loss"] = pd.to_numeric(df_all["profit_loss"], errors="coerce").fillna(0)
     
     return df_all
@@ -60,7 +56,6 @@ st.markdown("ระบบติดตามผลกำไรบอทแบบ 
 if df is None or df.empty:
     st.warning("⚠️ ไม่พบไฟล์ข้อมูล กรุณาตรวจสอบว่าบอทบน VPS ได้ส่งไฟล์ขึ้น GitHub แล้ว")
 else:
-    # คัดเฉพาะไม้ที่ปิดแล้วมาคำนวณ KPI
     df_closed = df[df["status"] == "CLOSED"].copy()
 
     # ==========================================
@@ -68,15 +63,14 @@ else:
     # ==========================================
     if page == "📊 Market & Overview":
         
-        # --- โซนแสดงกราฟ TradingView และ ปฏิทินข่าว ---
         st.markdown("### 🌐 Live Market & Economic Calendar")
         col_chart, col_news = st.columns([6, 4]) 
         
         with col_chart:
             components.html(
                 """
-                <div class="tradingview-widget-container">
-                  <div id="tradingview_xauusd"></div>
+                <div class="tradingview-widget-container" style="height: 600px; overflow: hidden;">
+                  <div id="tradingview_xauusd" style="height: 100%;"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
                   <script type="text/javascript">
                   new TradingView.widget({
@@ -95,14 +89,14 @@ else:
                 });
                   </script>
                 </div>
-                """, height=600  # 🌟 บังคับความสูงกล่อง Streamlit
+                """, height=600
             )
 
         with col_news:
             components.html(
                 """
-                <div class="tradingview-widget-container">
-                  <div class="tradingview-widget-container__widget"></div>
+                <div class="tradingview-widget-container" style="height: 600px; overflow: hidden;">
+                  <div class="tradingview-widget-container__widget" style="height: 600px;"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
                   {
                   "colorTheme": "dark",
@@ -115,7 +109,7 @@ else:
                 }
                   </script>
                 </div>
-                """, height=600  # 🌟 บังคับความสูงกล่อง Streamlit
+                """, height=600
             )
             
         st.markdown("---")
@@ -132,12 +126,9 @@ else:
             win_trades = len(data[data["profit_loss"] > 0])
             win_rate = (win_trades / total_trades) * 100 if total_trades > 0 else 0
 
-            # 🌟 [เพิ่มใหม่] คำนวณ Win Streak (ชนะติดกันสูงสุด)
-            # ต้องเรียงจากเก่าไปใหม่ก่อนเพื่อหาความต่อเนื่อง
+            # คำนวณ Win Streak
             data_sorted = data.sort_values("timestamp", ascending=True)
-            
-            current_streak = 0
-            max_streak = 0
+            current_streak, max_streak = 0, 0
             for profit in data_sorted["profit_loss"]:
                 if profit > 0:
                     current_streak += 1
@@ -145,13 +136,12 @@ else:
                 else:
                     current_streak = 0
                     
-            # 🌟 [เพิ่มใหม่] คำนวณ Max Drawdown (การขาดทุนสะสมสูงสุดจากจุดพีค)
+            # คำนวณ Max Drawdown
             cumulative = data_sorted["profit_loss"].cumsum()
             peak = cumulative.cummax()
             drawdown = peak - cumulative
-            max_dd = drawdown.max()
+            max_dd = drawdown.max() if not drawdown.empty else 0.0
 
-            # แสดงผลแบ่งเป็น 5 คอลัมน์
             col1, col2, col3, col4, col5 = st.columns(5)
             col1.metric(f"💰 Net Profit ({bot_name})", f"${total_profit:.2f}")
             col2.metric(f"🎯 Win Rate", f"{win_rate:.1f}%")
@@ -159,36 +149,57 @@ else:
             col4.metric(f"🔥 Max Win Streak", f"{max_streak} ไม้")
             col5.metric(f"📊 Total Closed", f"{total_trades}")
 
+        # 🌟 เรียกใช้งานฟังก์ชันที่ลืมใส่ไป
+        st.subheader("⚡ Scrapler (M5) Performance")
+        render_kpi("Scrapler", df_closed[df_closed["bot_type"] == "Scrapler ⚡"])
+        
+        st.subheader("🏰 Swing (H1/H4) Performance")
+        render_kpi("Swing", df_closed[df_closed["bot_type"] == "Swing 🏰"])
+
         st.markdown("---")
+
+        # --- โซนกราฟสถิติ (Line Chart & Bar Chart) ที่แหว่งไป ---
+        st.markdown("### 🚀 Profit Analytics")
+        col_line, col_bar = st.columns(2)
+        
+        with col_line:
+            df_chart = df_closed.sort_values("timestamp", ascending=True).copy()
+            df_chart["cumulative_profit"] = df_chart.groupby("bot_type")["profit_loss"].cumsum()
+
+            fig_line = px.line(
+                df_chart, x="timestamp", y="cumulative_profit", color="bot_type",
+                markers=True, line_shape="spline", title="📈 การเติบโตของพอร์ต (Equity Curve)",
+                color_discrete_map={"Scrapler ⚡": "#00d4ff", "Swing 🏰": "#ffaa00"}
+            )
+            st.plotly_chart(fig_line, use_container_width=True)
+
+        with col_bar:
+            df_bar = df_closed.copy()
+            df_bar['date'] = df_bar['timestamp'].dt.date
+            daily_profit = df_bar.groupby(['date', 'bot_type'])['profit_loss'].sum().reset_index()
+
+            fig_bar = px.bar(
+                daily_profit, x="date", y="profit_loss", color="bot_type", barmode="group",
+                title="📊 สรุปกำไร/ขาดทุนรายวัน (Daily Profit & Loss)",
+                color_discrete_map={"Scrapler ⚡": "#00d4ff", "Swing 🏰": "#ffaa00"}
+            )
+            fig_bar.update_layout(xaxis_title="วันที่", yaxis_title="กำไร (USD)")
+            st.plotly_chart(fig_bar, use_container_width=True)
 
     # ==========================================
     # 📜 หน้า 2: Trade History (ประวัติและเจาะลึก AI)
     # ==========================================
     elif page == "📜 Trade History & Filters":
         st.markdown("### 📜 Trade History & AI Thought Process")
-
         st.subheader("🔍 กรองข้อมูลประวัติ (Filters)")
         
-        # --- แผงควบคุมตัวกรอง (Filters) ---
         col1, col2 = st.columns(2)
         with col1:
-            filter_bot = st.selectbox(
-                "🤖 เลือกบอท:", ["ทั้งหมด (All)", "Scrapler ⚡", "Swing 🏰"]
-            )
+            filter_bot = st.selectbox("🤖 เลือกบอท:", ["ทั้งหมด (All)", "Scrapler ⚡", "Swing 🏰"])
         with col2:
-            filter_time = st.selectbox(
-                "📅 ช่วงเวลา:",
-                [
-                    "ทั้งหมด (All)",
-                    "รายวัน (Today)",
-                    "รายสัปดาห์ (This Week)",
-                    "รายเดือน (This Month)",
-                ],
-            )
+            filter_time = st.selectbox("📅 ช่วงเวลา:", ["ทั้งหมด (All)", "รายวัน (Today)", "รายสัปดาห์ (This Week)", "รายเดือน (This Month)"])
 
-        # --- ลอจิกการกรองข้อมูล ---
         df_filtered = df.copy()
-
         if filter_bot != "ทั้งหมด (All)":
             df_filtered = df_filtered[df_filtered["bot_type"] == filter_bot]
 
@@ -196,13 +207,10 @@ else:
         if filter_time == "รายวัน (Today)":
             df_filtered = df_filtered[df_filtered["timestamp"].dt.date == now.date()]
         elif filter_time == "รายสัปดาห์ (This Week)":
-            df_filtered = df_filtered[
-                df_filtered["timestamp"].dt.isocalendar().week == now.isocalendar().week
-            ]
+            df_filtered = df_filtered[df_filtered["timestamp"].dt.isocalendar().week == now.isocalendar().week]
         elif filter_time == "รายเดือน (This Month)":
             df_filtered = df_filtered[df_filtered["timestamp"].dt.month == now.month]
 
-        # 🌟 คำนวณสถิติเฉพาะหน้าต่างที่ฟิลเตอร์มา
         df_filtered_closed = df_filtered[df_filtered['status'] == 'CLOSED']
         if not df_filtered_closed.empty:
             f_profit = df_filtered_closed['profit_loss'].sum()
@@ -212,7 +220,6 @@ else:
         else:
             f_profit, f_trades, f_winrate = 0, 0, 0
 
-        # เรียงจากล่าสุดไปเก่าสุดเพื่อแสดงผล
         df_filtered = df_filtered.sort_values("timestamp", ascending=False)
         st.markdown("---")
         st.markdown(f"### 📊 สถิติเฉพาะช่วงเวลา: {filter_time}")
@@ -224,41 +231,24 @@ else:
 
         st.markdown(f"**พบข้อมูลประวัติทั้งหมด {len(df_filtered)} รายการ (รวมไม้ที่กำลังเปิดอยู่)**")
 
-        # --- โซนแสดงประวัติแบบกดขยายได้ ---
         if df_filtered.empty:
             st.info("ไม่พบประวัติการเทรดในช่วงเวลาที่เลือก")
         else:
             for index, row in df_filtered.iterrows():
-                # ตกแต่งสีสถานะและกำไร
                 status_icon = "🟢" if row["status"] == "OPEN" else "🔒"
-                p_color = (
-                    "🟢"
-                    if row["profit_loss"] > 0
-                    else "🔴" if row["profit_loss"] < 0 else "⚪"
-                )
-                pl_text = (
-                    f"P/L: {row['profit_loss']} USD {p_color}"
-                    if row["status"] == "CLOSED"
-                    else "กำลังเทรด..."
-                )
+                p_color = "🟢" if row["profit_loss"] > 0 else "🔴" if row["profit_loss"] < 0 else "⚪"
+                pl_text = f"P/L: {row['profit_loss']} USD {p_color}" if row["status"] == "CLOSED" else "กำลังเทรด..."
 
-                # หัวข้อที่กดขยายได้
-                with st.expander(
-                    f"{status_icon} [{row['timestamp'].strftime('%Y-%m-%d %H:%M')}] | {row['bot_type']} | {row['action']} | {pl_text}"
-                ):
-                    
+                with st.expander(f"{status_icon} [{row['timestamp'].strftime('%Y-%m-%d %H:%M')}] | {row['bot_type']} | {row['action']} | {pl_text}"):
                     st.markdown("#### 📊 ข้อมูล Technical ตอนเข้าเทรด")
                     col_t1, col_t2, col_t3, col_t4 = st.columns(4)
                     col_t1.metric("SL (Stop Loss)", row.get("sl", "N/A"))
                     col_t2.metric("TP (Take Profit)", row.get("tp", "N/A"))
-                    # รองรับทั้งคอลัมน์เก่า (rsi) และใหม่ (rsi_fast)
                     col_t3.metric("RSI Fast", row.get("rsi_fast", row.get("rsi", "N/A")))
                     col_t4.metric("Sentiment Score", row.get("sentiment_score", "N/A"))
 
                     st.markdown("---")
                     st.markdown("#### 🧠 AI Thought Process (กระบวนการคิด)")
                     st.info(row.get("thought_process", "ไม่มีข้อมูล"))
-                    
                     st.markdown("#### ⚡ เหตุผลในการตัดสินใจ (Reasoning)")
                     st.success(row.get("reason_text", "ไม่มีข้อมูล"))
-
