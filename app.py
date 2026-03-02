@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import streamlit.components.v1 as components
+import time  # 🌟 เพิ่มโมดูล time เข้ามา
 
 # ==========================================
 # ⚙️ ตั้งค่าหน้าเว็บเป็นแบบ Wide กว้างเต็มจอ
@@ -14,6 +15,10 @@ st.set_page_config(page_title="Mairu AI Dashboard", layout="wide", page_icon="�
 # ==========================================
 @st.cache_data(ttl=60)
 def load_data():
+    # 💡 ทริค: ถ้าอ่านไฟล์ .csv ธรรมดาแล้วยังไม่อัปเดต 
+    # คุณสามารถเปลี่ยนข้อความใน "" ให้เป็นลิงก์ Raw จาก GitHub ของคุณได้เลย 
+    # เช่น f"https://raw.githubusercontent.com/.../db_scrapler.csv?v={time.time()}"
+    
     try:
         df_scrapler = pd.read_csv("db_scrapler.csv", on_bad_lines="skip")
         df_scrapler["bot_type"] = "Scrapler ⚡"
@@ -50,8 +55,18 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.info("💡 ข้อมูลจะรีเฟรชอัตโนมัติทุกๆ 60 วินาที\n\n🟢 ระบบทำงานปกติ 24/7")
 
-st.title("🤖 Mairu AI Trading Dashboard")
-st.markdown("ระบบติดตามผลกำไรบอทแบบ Multi-Strategy | 🔄 อัปเดตข้อมูล Real-time")
+# ==========================================
+# 🌟 เพิ่ม Header และปุ่มกด Refresh ตรงนี้!
+# ==========================================
+col_title, col_btn = st.columns([8, 2])
+with col_title:
+    st.title("🤖 Mairu AI Trading Dashboard")
+    st.markdown("ระบบติดตามผลกำไรบอทแบบ Multi-Strategy | 🔄 อัปเดตข้อมูล Real-time")
+with col_btn:
+    st.write("") # ดันปุ่มลงมานิดนึงให้สวยงาม
+    if st.button("🔄 อัปเดตข้อมูลล่าสุด", use_container_width=True):
+        st.cache_data.clear() # 🌟 สั่งล้างความจำ Cache ของ Streamlit
+        st.rerun() # 🌟 สั่งโหลดหน้าเว็บใหม่ 1 รอบ
 
 if df is None or df.empty:
     st.warning("⚠️ ไม่พบไฟล์ข้อมูล กรุณาตรวจสอบว่าบอทบน VPS ได้ส่งไฟล์ขึ้น GitHub แล้ว")
@@ -149,7 +164,6 @@ else:
             col4.metric(f"🔥 Max Win Streak", f"{max_streak} ไม้")
             col5.metric(f"📊 Total Closed", f"{total_trades}")
 
-        # 🌟 เรียกใช้งานฟังก์ชันที่ลืมใส่ไป
         st.subheader("⚡ Scrapler (M5) Performance")
         render_kpi("Scrapler", df_closed[df_closed["bot_type"] == "Scrapler ⚡"])
         
@@ -158,7 +172,7 @@ else:
 
         st.markdown("---")
 
-        # --- โซนกราฟสถิติ (Line Chart & Bar Chart) ที่แหว่งไป ---
+        # --- โซนกราฟสถิติ (Line Chart & Bar Chart) ---
         st.markdown("### 🚀 Profit Analytics")
         col_line, col_bar = st.columns(2)
         
